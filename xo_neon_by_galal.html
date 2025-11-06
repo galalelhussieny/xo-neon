@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="src/style.css">
+  </head>
+  <body>
+    <h1 id="header"></h1>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لعبة X-O نيون</title>
+<style>
+  body {
+    background: radial-gradient(circle at center, #001a00 0%, #000 100%);
+    color: #00ff66;
+    font-family: 'Tahoma', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    text-align: center;
+  }
+  h1 {
+    text-shadow: 0 0 25px #00ff66;
+    margin-bottom: 15px;
+    font-size: 2.8em;
+  }
+  .mode-select, .difficulty-select {
+    margin: 15px;
+    font-size: 1.3em;
+  }
+  button {
+    background: transparent;
+    border: 3px solid #00ff66;
+    color: #00ff66;
+    padding: 15px 30px;
+    margin: 7px;
+    cursor: pointer;
+    border-radius: 10px;
+    text-shadow: 0 0 15px #00ff66;
+    box-shadow: 0 0 20px #00ff66;
+    font-size: 1.2em;
+    transition: all 0.25s ease-in-out;
+  }
+  button:hover {
+    background: #00ff66;
+    color: #000;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 130px);
+    grid-gap: 15px;
+    margin-top: 25px;
+  }
+  .cell {
+    width: 130px;
+    height: 130px;
+    font-size: 3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #00ff66;
+    cursor: pointer;
+    box-shadow: 0 0 15px #00ff66;
+    transition: 0.2s;
+  }
+  .cell.flash {
+    background: #00ff66;
+    color: black;
+    box-shadow: 0 0 30px #00ff66;
+  }
+  .message {
+    position: absolute;
+    top: 40%;
+    font-size: 3em;
+    font-weight: bold;
+    color: #ff0000;
+    text-shadow: 0 0 35px #ff0000;
+    display: none;
+    z-index: 999;
+  }
+  .end-buttons {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    position: absolute;
+    top: 70%;
+  }
+</style>
+</head>
+<body>
+  <h1>🔥 لعبة X-O 🔥</h1>
+
+  <div class="mode-select">
+    <button onclick="setMode('friend')">👬 اللعب مع صديق</button>
+    <button onclick="setMode('computer')">🤖 اللعب ضد الكمبيوتر</button>
+  </div>
+
+  <div class="difficulty-select" style="display:none;">
+    <p>اختر مستوى الصعوبة:</p>
+    <button onclick="setDifficulty('easy')">😅 سهل</button>
+    <button onclick="setDifficulty('medium')">😎 متوسط</button>
+    <button onclick="setDifficulty('hard')">💀 صعب</button>
+  </div>
+
+  <div class="board"></div>
+  <div class="message" id="winMessage"></div>
+
+  <div class="end-buttons" id="endButtons">
+    <button onclick="restartGame()">🔁 إعادة اللعب</button>
+    <button onclick="goHome()">🏠 القائمة الرئيسية</button>
+  </div>
+
+<script>
+const board = document.querySelector('.board');
+const winMessage = document.getElementById('winMessage');
+const endButtons = document.getElementById('endButtons');
+let cells = [];
+let currentPlayer = 'X';
+let gameActive = true;
+let mode = '';
+let difficulty = '';
+
+const victoryPhrases = [
+  "ابلع ياا 🔥",
+  "ملكش فيها 💪",
+  "كل مرة هكسب 😎",
+  "كفاية عليك كدا 👑"
+];
+
+function setMode(selectedMode) {
+  mode = selectedMode;
+  document.querySelector('.mode-select').style.display = 'none';
+  if (mode === 'computer') {
+    document.querySelector('.difficulty-select').style.display = 'block';
+  } else {
+    startGame();
+  }
+}
+
+function setDifficulty(level) {
+  difficulty = level;
+  document.querySelector('.difficulty-select').style.display = 'none';
+  startGame();
+}
+
+function startGame() {
+  board.innerHTML = '';
+  cells = [];
+  currentPlayer = 'X';
+  gameActive = true;
+  winMessage.style.display = 'none';
+  endButtons.style.display = 'none';
+  board.style.display = 'grid';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.classList.add('cell');
+    cell.addEventListener('click', () => handleClick(i));
+    board.appendChild(cell);
+    cells.push('');
+  }
+}
+
+function handleClick(i) {
+  if (!gameActive || cells[i] !== '') return;
+  const cell = board.children[i];
+  cells[i] = currentPlayer;
+  cell.textContent = currentPlayer;
+  flashCell(cell);
+  if (checkWin()) {
+    showVictoryMessage();
+    return;
+  }
+  if (cells.every(c => c !== '')) {
+    showDrawMessage();
+    return;
+  }
+  currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+  if (mode === 'computer' && currentPlayer === 'O') {
+    setTimeout(computerMove, 500);
+  }
+}
+
+function flashCell(cell) {
+  cell.classList.add('flash');
+  setTimeout(() => cell.classList.remove('flash'), 200);
+}
+
+function computerMove() {
+  if (!gameActive) return;
+  let move;
+  const empty = cells.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+  if (difficulty === 'easy') {
+    move = empty[Math.floor(Math.random() * empty.length)];
+  } else if (difficulty === 'medium') {
+    move = Math.random() < 0.5 ? findBestMove() : empty[Math.floor(Math.random() * empty.length)];
+  } else {
+    move = Math.random() < 0.5 ? findBestMove() : empty[Math.floor(Math.random() * empty.length)];
+  }
+  handleClick(move);
+}
+
+function findBestMove() {
+  const lines = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+  for (const line of lines) {
+    const [a,b,c] = line;
+    if (cells[a] === 'O' && cells[b] === 'O' && cells[c] === '') return c;
+    if (cells[a] === 'O' && cells[b] === '' && cells[c] === 'O') return b;
+    if (cells[a] === '' && cells[b] === 'O' && cells[c] === 'O') return a;
+  }
+  for (const line of lines) {
+    const [a,b,c] = line;
+    if (cells[a] === 'X' && cells[b] === 'X' && cells[c] === '') return c;
+    if (cells[a] === 'X' && cells[b] === '' && cells[c] === 'X') return b;
+    if (cells[a] === '' && cells[b] === 'X' && cells[c] === 'X') return a;
+  }
+  const empty = cells.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+  return empty[Math.floor(Math.random() * empty.length)];
+}
+
+function checkWin() {
+  const winPatterns = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+  for (const [a,b,c] of winPatterns) {
+    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+      gameActive = false;
+      return true;
+    }
+  }
+  return false;
+}
+
+function showVictoryMessage() {
+  const phrase = victoryPhrases[Math.floor(Math.random() * victoryPhrases.length)];
+  winMessage.textContent = phrase;
+  board.style.display = 'none';
+  winMessage.style.display = 'block';
+  setTimeout(() => {
+    winMessage.style.display = 'none';
+    endButtons.style.display = 'flex';
+  }, 2000);
+}
+
+function showDrawMessage() {
+  winMessage.textContent = "تعادل 🤝";
+  board.style.display = 'none';
+  winMessage.style.display = 'block';
+  setTimeout(() => {
+    winMessage.style.display = 'none';
+    endButtons.style.display = 'flex';
+  }, 2000);
+}
+
+function restartGame() {
+  endButtons.style.display = 'none';
+  startGame();
+}
+
+function goHome() {
+  endButtons.style.display = 'none';
+  board.style.display = 'none';
+  document.querySelector('.mode-select').style.display = 'block';
+  document.querySelector('.difficulty-select').style.display = 'none';
+}
+</script>
+</body>
+</html>
